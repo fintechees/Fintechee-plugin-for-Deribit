@@ -2,15 +2,19 @@ registerEA(
 "cryptocurrency_option_trading_platform",
 "A plugin to trade cryptocurrency options(v0.01)",
 [{
-	name: "instrument",
-	value: "ticker.BTC-18OCT20-11000-C.raw",
-	required: false,
-	type: "String",
+	name: "interval",
+	value: 30000,
+	required: true,
+	type: "Integer",
 	range: null,
 	step: null
 }],
 function (context) { // Init()
       var orderBookId = null
+      var loaded = false
+      var latestHb = null
+
+      var interval = getEAParameter(context, "interval")
 
       function convertOptionName (rawName) {
         var name = rawName.split("-")
@@ -137,11 +141,28 @@ function (context) { // Init()
 
         $("#crypto_options").empty()
         $("#crypto_options").html(optionsHtml)
+        $("#crypto_options_dashboard").find(".ui.dropdown").dropdown("clear")
         $("#crypto_options_dashboard").find(".ui.dropdown").dropdown({
+          autoFocus: false,
+          showOnFocus: false,
           onChange: function (val) {
+            for (var i in window.subscriptionIds) {
+              unsubscribeIt(i)
+            }
+            window.subscriptionIds = []
             showOrderBook(val, window.orderBookData.orderBookData)
           }
         })
+      }
+
+      function checkHb () {
+        if (new Date().getTime() - latestHb > interval) {
+          printMessage("Timeout... Refreshing...")
+          if (typeof window.wsockOpened != "undefined" && window.wsockOpened) {
+            loaded = true
+          }
+          initCryptoOptionsWS()
+        }
       }
 
       function showOrderBook (optionName, orderBookData) {
@@ -158,6 +179,9 @@ function (context) { // Init()
                   orderBookData[i].arrPrices[j].bidP,
                   orderBookData[i].arrPrices[j].askP
                 ]).draw(false)
+
+                subscribeIt(orderBookData[i].optionName2 + "-" + orderBookData[i].arrPrices[j].strikePrice + "-" + "C")
+                subscribeIt(orderBookData[i].optionName2 + "-" + orderBookData[i].arrPrices[j].strikePrice + "-" + "P")
               }
             }
           }
@@ -165,49 +189,103 @@ function (context) { // Init()
       }
 
       function initCryptoOptionsWS () {
+        $("#disconnect_ws").html("Loading...")
+        $("#disconnect_ws").addClass("disabled")
+        $("#disconnect_ws").addClass("loading")
+
+        if (typeof window.wsock != "undefined" && typeof window.subscriptionIds != "undefined") {
+          for (var i in window.subscriptionIds) {
+            unsubscribeIt(i)
+          }
+        }
+
         window.wsock = new WebSocket("wss://test.deribit.com/ws/api/v2")
         window.wsockOpened = false
 
         window.wsock.onmessage = function (e) {
           var resData = JSON.parse(e.data)
-          if (orderBookId != null && orderBookId == resData.id) {
+          if (orderBookId != null && typeof resData.id != "undefined" && orderBookId == resData.id) {
             window.orderBookData = parseOrderBook(resData.result)
             showOptions(window.orderBookData.expirations)
             showOrderBook(window.orderBookData.expirations[0].optionName, window.orderBookData.orderBookData)
+            $("#disconnect_ws").html("Disconnect")
+            $("#disconnect_ws").removeClass("loading")
+            $("#disconnect_ws").removeClass("disabled")
+          } else if (typeof resData.params != "undefined" &&
+            typeof resData.params.data != "undefined" && typeof resData.params.data.instrument_name != "undefined" &&
+            typeof window.subscriptionIds[resData.params.data.instrument_name] != "undefined") {
+
+            latestHb = new Date().getTime()
+            var name = resData.params.data.instrument_name.split("-")
+            var bid = (resData.params.data.best_bid_price != null && resData.params.data.best_bid_price != 0) ? resData.params.data.best_bid_price : ""
+            var ask = (resData.params.data.best_ask_price != null && resData.params.data.best_ask_price != 0) ? resData.params.data.best_ask_price : ""
+
+            var table = $("#options").DataTable()
+            table.columns().eq(0).each(function (index) {
+              if (index == 2) {
+                var column = table.column(index)
+                var data = column.data()
+                for (var i in data) {
+                  if (data[i] == parseFloat(name[2])) {
+                    if (name[3] == "C") {
+                      $("#options").dataTable().fnUpdate(bid, parseInt(i), 0, false, false)
+                      $("#options").dataTable().fnUpdate(ask, parseInt(i), 1, false, false)
+                    } else if (name[3] == "P") {
+                      $("#options").dataTable().fnUpdate(bid, parseInt(i), 3, false, false)
+                      $("#options").dataTable().fnUpdate(ask, parseInt(i), 4, false, false)
+                    }
+                    break
+                  }
+                }
+              }
+            })
           }
         }
 
         window.wsock.onopen = function () {
+          latestHb = new Date().getTime()
           window.wsockOpened = true
+          if (loaded) {
+            for (var i in window.subscriptionIds) {
+              subscribeIt(i)
+            }
+
+            $("#disconnect_ws").html("Disconnect")
+            $("#disconnect_ws").removeClass("loading")
+            $("#disconnect_ws").removeClass("disabled")
+          } else {
+            getOrderBook("BTC")
+          }
         }
       }
 
       function disconnectCryptoOptionsWS () {
         if (typeof window.wsockOpened != "undefined" && window.wsockOpened) {
-          if (typeof window.wsockSubscribed != "undefined" && window.wsockSubscribed) {
-            var msg = {
-              jsonrpc: "2.0",
-              id: new Date().getTime(),
-              method: "public/unsubscribe",
-              params: {
-                channels: [
-                  instrument // "deribit_price_index.btc_usd"
-                ]
-              }
-            }
-
-            window.wsock.send(JSON.stringify(msg))
-            delete window.wsockSubscribed
+          for (var i in window.subscriptionIds) {
+            unsubscribeIt(i)
           }
 
+          if (typeof window.wsTimer != "undefined") {
+            clearInterval(window.wsTimer)
+          }
           window.wsock.close()
           delete window.wsock
           delete window.wsockOpened
+          delete window.wsTimer
         }
       }
 
       function getOrderBook (currency) {
         if (typeof window.wsockOpened != "undefined" && window.wsockOpened) {
+          $("#disconnect_ws").html("Loading...")
+          $("#disconnect_ws").addClass("disabled")
+          $("#disconnect_ws").addClass("loading")
+
+          for (var i in window.subscriptionIds) {
+            unsubscribeIt(i)
+          }
+          window.subscriptionIds = []
+
           orderBookId = new Date().getTime()
 
           var msg = {
@@ -224,76 +302,72 @@ function (context) { // Init()
         }
       }
 
-      function subscribeIt () {
+      function subscribeIt (instrument) {
         if (typeof window.wsockOpened != "undefined" && window.wsockOpened) {
-          if (typeof window.wsockSubscribed == "undefined" || !window.wsockSubscribed) {
-            var msg = {
-              jsonrpc: "2.0",
-              id: new Date().getTime(),
-              method: "public/subscribe",
-              params: {
-                channels: [
-                  instrument // "deribit_price_index.btc_usd"
-                ]
-              }
-            }
+          window.subscriptionIds[instrument] = new Date().getTime()
 
-            window.wsock.send(JSON.stringify(msg))
-            window.wsockSubscribed = true
+          var msg = {
+            jsonrpc: "2.0",
+            id: window.subscriptionIds[instrument],
+            method: "public/subscribe",
+            params: {
+              channels: [
+                "ticker." + instrument + ".raw" // "deribit_price_index.btc_usd"
+              ]
+            }
           }
+
+          window.wsock.send(JSON.stringify(msg))
         }
       }
 
-      function unsubscribeIt () {
+      function unsubscribeIt (instrument) {
         if (typeof window.wsockOpened != "undefined" && window.wsockOpened) {
-          if (typeof window.wsockSubscribed != "undefined" && window.wsockSubscribed) {
-            var msg = {
-              jsonrpc: "2.0",
-              id: new Date().getTime(),
-              method: "public/unsubscribe",
-              params: {
-                channels: [
-                  instrument // "deribit_price_index.btc_usd"
-                ]
-              }
+          var msg = {
+            jsonrpc: "2.0",
+            id: new Date().getTime(),
+            method: "public/unsubscribe",
+            params: {
+              channels: [
+                "ticker." + instrument + ".raw" // "deribit_price_index.btc_usd"
+              ]
             }
-
-            window.wsock.send(JSON.stringify(msg))
-            window.wsockSubscribed = false
           }
+
+          window.wsock.send(JSON.stringify(msg))
         }
       }
 
-      var panel = '<div class="ui modal" id="crypto_options_dashboard">' +
-        '<i class="close icon"></i>' +
-        '<div class="content">' +
-          '<div id="loading_crypto_options">' +
-            '<div class="ui text">Loading............</div>' +
-          '</div>' +
-          '<div class="ui selection dropdown" style="width:200px">' +
-            '<input type="hidden" name="gender">' +
-            '<i class="dropdown icon"></i>' +
-            '<div class="default text">Options</div>' +
-            '<div class="menu" id="crypto_options">' +
+      if (typeof $("#crypto_options_dashboard").html() == "undefined") {
+        var panel = '<div class="ui modal" id="crypto_options_dashboard">' +
+          '<i class="close icon"></i>' +
+          '<div class="content">' +
+            '<div class="ui button" id="get_btc">BTC</div>' +
+            '<div class="ui button" id="get_eth">ETH</div>' +
+            '<div class="ui selection dropdown" style="width:200px">' +
+              '<input type="hidden" name="crypto_option">' +
+              '<i class="dropdown icon"></i>' +
+              '<div class="default text" id="current_crypto_option">Options</div>' +
+              '<div class="menu" id="crypto_options">' +
+              '</div>' +
             '</div>' +
           '</div>' +
-        '</div>' +
-        '<div class="content">' +
-          '<div class="description">' +
-            '<table id="options" class="cell-border" cellspacing="0">' +
-      			'</table>' +
+          '<div class="content">' +
+            '<div class="description">' +
+              '<table id="options" class="cell-border" cellspacing="0">' +
+        			'</table>' +
+            '</div>' +
           '</div>' +
-        '</div>' +
-        '<div class="actions">' +
-          // '<div class="ui button" id="subscribe_it">Subscribe</div>' +
-          // '<div class="ui button" id="unsubscribe_it">Unsubscribe</div>' +
-          '<div class="ui button" id="disconnect_ws">Disconnect</div>' +
-        '</div>' +
-      '</div>'
+          '<div class="actions">' +
+            '<div class="ui button" id="disconnect_ws">Disconnect</div>' +
+          '</div>' +
+        '</div>'
 
-      $("#crypto_options_dashboard").remove()
-      $("#reserved_zone").html(panel)
-      $("#loading_crypto_options").show()
+        $("#reserved_zone").html(panel)
+        window.subscriptionIds = []
+      } else {
+        loaded = true
+      }
 
       if (!$.fn.dataTable.isDataTable("#options")) {
   			$("#options").DataTable({
@@ -325,26 +399,26 @@ function (context) { // Init()
   			})
   		}
 
-      // $("#subscribe_it").on("click", function () {
-      //   subscribeIt()
-      // })
-      // $("#unsubscribe_it").on("click", function () {
-      //   unsubscribeIt()
-      // })
+      $("#get_btc").on("click", function () {
+        getOrderBook("BTC")
+      })
+      $("#get_eth").on("click", function () {
+        getOrderBook("ETH")
+      })
       $("#disconnect_ws").on("click", function () {
         disconnectCryptoOptionsWS()
       })
-
-      var instrument = getEAParameter(context, "instrument")
 
       initCryptoOptionsWS()
 
       $("#crypto_options_dashboard").modal("show")
 
-      setTimeout(function () {
-        getOrderBook("BTC")
-        $("#loading_crypto_options").hide()
-      }, 10000)
+      if (typeof window.wsTimer != "undefined") {
+        clearInterval(window.wsTimer)
+      }
+      window.wsTimer = setInterval(function () {
+        checkHb()
+      }, interval)
 		},
 function (context) { // Deinit()
 		},
