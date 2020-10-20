@@ -1,6 +1,6 @@
 registerEA(
 "cryptocurrency_option_trading_platform",
-"A plugin to trade cryptocurrency options(v0.01)",
+"A plugin to trade cryptocurrency options(v0.02)",
 [{
 	name: "interval",
 	value: 30000,
