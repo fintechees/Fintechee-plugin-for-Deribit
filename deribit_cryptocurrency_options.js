@@ -1,6 +1,6 @@
 registerEA(
 "cryptocurrency_option_trading_platform",
-"A plugin to trade cryptocurrency options(v0.03)",
+"A plugin to trade cryptocurrency options(v0.04)",
 [{
 	name: "interval",
 	value: 30000,
@@ -166,13 +166,13 @@ function (context) { // Init()
       }
 
       function showOrderBook (optionName, orderBookData) {
-        if ($.fn.dataTable.isDataTable("#options")) {
-    			$("#options").DataTable().clear().draw()
+        if ($.fn.dataTable.isDataTable("#crypto_options_orderbook")) {
+    			$("#crypto_options_orderbook").DataTable().clear().draw()
 
           for (var i in orderBookData) {
             if (orderBookData[i].optionName == optionName) {
               for (var j in orderBookData[i].arrPrices) {
-                $("#options").DataTable().row.add([
+                $("#crypto_options_orderbook").DataTable().row.add([
                   orderBookData[i].arrPrices[j].bidC != null ? orderBookData[i].arrPrices[j].bidC : "",
                   orderBookData[i].arrPrices[j].askC != null ? orderBookData[i].arrPrices[j].askC : "",
                   orderBookData[i].arrPrices[j].strikePrice,
@@ -224,7 +224,7 @@ function (context) { // Init()
             var bid = (resData.params.data.best_bid_price != null && resData.params.data.best_bid_price != 0) ? resData.params.data.best_bid_price : ""
             var ask = (resData.params.data.best_ask_price != null && resData.params.data.best_ask_price != 0) ? resData.params.data.best_ask_price : ""
 
-            var table = $("#options").DataTable()
+            var table = $("#crypto_options_orderbook").DataTable()
             table.columns().eq(0).each(function (index) {
               if (index == 2) {
                 var column = table.column(index).data()
@@ -234,30 +234,30 @@ function (context) { // Init()
                   if (column[i] == parseFloat(name[2])) {
                     if (name[3] == "C") {
                       if (row[0] != null && row[0] != "" && bid != "") {
-                        $("#options").dataTable().fnUpdate(bid - row[0], parseInt(i), 5, false, false)
+                        $("#crypto_options_orderbook").dataTable().fnUpdate(bid - row[0], parseInt(i), 5, false, false)
                       } else {
-                        $("#options").dataTable().fnUpdate(0, parseInt(i), 5, false, false)
+                        $("#crypto_options_orderbook").dataTable().fnUpdate(0, parseInt(i), 5, false, false)
                       }
                       if (row[1] != null && row[1] != "" && ask != "") {
-                        $("#options").dataTable().fnUpdate(ask - row[1], parseInt(i), 6, false, false)
+                        $("#crypto_options_orderbook").dataTable().fnUpdate(ask - row[1], parseInt(i), 6, false, false)
                       } else {
-                        $("#options").dataTable().fnUpdate(0, parseInt(i), 6, false, false)
+                        $("#crypto_options_orderbook").dataTable().fnUpdate(0, parseInt(i), 6, false, false)
                       }
-                      $("#options").dataTable().fnUpdate(bid, parseInt(i), 0, false, false)
-                      $("#options").dataTable().fnUpdate(ask, parseInt(i), 1, false, false)
+                      $("#crypto_options_orderbook").dataTable().fnUpdate(bid, parseInt(i), 0, false, false)
+                      $("#crypto_options_orderbook").dataTable().fnUpdate(ask, parseInt(i), 1, false, false)
                     } else if (name[3] == "P") {
                       if (row[3] != null && row[3] != "" && bid != "") {
-                        $("#options").dataTable().fnUpdate(bid - row[3], parseInt(i), 7, false, false)
+                        $("#crypto_options_orderbook").dataTable().fnUpdate(bid - row[3], parseInt(i), 7, false, false)
                       } else {
-                        $("#options").dataTable().fnUpdate(0, parseInt(i), 7, false, false)
+                        $("#crypto_options_orderbook").dataTable().fnUpdate(0, parseInt(i), 7, false, false)
                       }
                       if (row[4] != null && row[4] != "" && ask != "") {
-                        $("#options").dataTable().fnUpdate(ask - row[4], parseInt(i), 8, false, false)
+                        $("#crypto_options_orderbook").dataTable().fnUpdate(ask - row[4], parseInt(i), 8, false, false)
                       } else {
-                        $("#options").dataTable().fnUpdate(0, parseInt(i), 8, false, false)
+                        $("#crypto_options_orderbook").dataTable().fnUpdate(0, parseInt(i), 8, false, false)
                       }
-                      $("#options").dataTable().fnUpdate(bid, parseInt(i), 3, false, false)
-                      $("#options").dataTable().fnUpdate(ask, parseInt(i), 4, false, false)
+                      $("#crypto_options_orderbook").dataTable().fnUpdate(bid, parseInt(i), 3, false, false)
+                      $("#crypto_options_orderbook").dataTable().fnUpdate(ask, parseInt(i), 4, false, false)
                     }
                     break
                   }
@@ -286,6 +286,9 @@ function (context) { // Init()
 
       function disconnectCryptoOptionsWS () {
         if (typeof window.wsockOpened != "undefined" && window.wsockOpened) {
+          $("#disconnect_ws").html("Disconnected")
+          $("#disconnect_ws").addClass("disabled")
+
           for (var i in window.subscriptionIds) {
             unsubscribeIt(i)
           }
@@ -379,7 +382,7 @@ function (context) { // Init()
           '</div>' +
           '<div class="content">' +
             '<div class="description">' +
-              '<table id="options" class="cell-border" cellspacing="0">' +
+              '<table id="crypto_options_orderbook" class="cell-border" cellspacing="0">' +
         			'</table>' +
             '</div>' +
           '</div>' +
@@ -394,8 +397,8 @@ function (context) { // Init()
         loaded = true
       }
 
-      if (!$.fn.dataTable.isDataTable("#options")) {
-  			$("#options").DataTable({
+      if (!$.fn.dataTable.isDataTable("#crypto_options_orderbook")) {
+  			$("#crypto_options_orderbook").DataTable({
   				data: [],
   				columns: [
   					{title: "Bid(C)",
