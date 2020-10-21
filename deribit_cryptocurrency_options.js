@@ -1,6 +1,6 @@
 registerEA(
 "cryptocurrency_option_trading_platform",
-"A plugin to trade cryptocurrency options(v0.02)",
+"A plugin to trade cryptocurrency options(v0.03)",
 [{
 	name: "interval",
 	value: 30000,
@@ -173,11 +173,15 @@ function (context) { // Init()
             if (orderBookData[i].optionName == optionName) {
               for (var j in orderBookData[i].arrPrices) {
                 $("#options").DataTable().row.add([
-                  orderBookData[i].arrPrices[j].bidC,
-                  orderBookData[i].arrPrices[j].askC,
+                  orderBookData[i].arrPrices[j].bidC != null ? orderBookData[i].arrPrices[j].bidC : "",
+                  orderBookData[i].arrPrices[j].askC != null ? orderBookData[i].arrPrices[j].askC : "",
                   orderBookData[i].arrPrices[j].strikePrice,
-                  orderBookData[i].arrPrices[j].bidP,
-                  orderBookData[i].arrPrices[j].askP
+                  orderBookData[i].arrPrices[j].bidP != null ? orderBookData[i].arrPrices[j].bidP : "",
+                  orderBookData[i].arrPrices[j].askP != null ? orderBookData[i].arrPrices[j].askP : "",
+                  0,
+                  0,
+                  0,
+                  0
                 ]).draw(false)
 
                 subscribeIt(orderBookData[i].optionName2 + "-" + orderBookData[i].arrPrices[j].strikePrice + "-" + "C")
@@ -223,14 +227,35 @@ function (context) { // Init()
             var table = $("#options").DataTable()
             table.columns().eq(0).each(function (index) {
               if (index == 2) {
-                var column = table.column(index)
-                var data = column.data()
-                for (var i in data) {
-                  if (data[i] == parseFloat(name[2])) {
+                var column = table.column(index).data()
+                for (var i in column) {
+                  var row = table.row(parseInt(i)).data()
+
+                  if (column[i] == parseFloat(name[2])) {
                     if (name[3] == "C") {
+                      if (row[0] != null && row[0] != "" && bid != "") {
+                        $("#options").dataTable().fnUpdate(bid - row[0], parseInt(i), 5, false, false)
+                      } else {
+                        $("#options").dataTable().fnUpdate(0, parseInt(i), 5, false, false)
+                      }
+                      if (row[1] != null && row[1] != "" && ask != "") {
+                        $("#options").dataTable().fnUpdate(ask - row[1], parseInt(i), 6, false, false)
+                      } else {
+                        $("#options").dataTable().fnUpdate(0, parseInt(i), 6, false, false)
+                      }
                       $("#options").dataTable().fnUpdate(bid, parseInt(i), 0, false, false)
                       $("#options").dataTable().fnUpdate(ask, parseInt(i), 1, false, false)
                     } else if (name[3] == "P") {
+                      if (row[3] != null && row[3] != "" && bid != "") {
+                        $("#options").dataTable().fnUpdate(bid - row[3], parseInt(i), 7, false, false)
+                      } else {
+                        $("#options").dataTable().fnUpdate(0, parseInt(i), 7, false, false)
+                      }
+                      if (row[4] != null && row[4] != "" && ask != "") {
+                        $("#options").dataTable().fnUpdate(ask - row[4], parseInt(i), 8, false, false)
+                      } else {
+                        $("#options").dataTable().fnUpdate(0, parseInt(i), 8, false, false)
+                      }
                       $("#options").dataTable().fnUpdate(bid, parseInt(i), 3, false, false)
                       $("#options").dataTable().fnUpdate(ask, parseInt(i), 4, false, false)
                     }
@@ -373,11 +398,55 @@ function (context) { // Init()
   			$("#options").DataTable({
   				data: [],
   				columns: [
-  					{title: "Bid(C)"},
-  					{title: "Ask(C)"},
+  					{title: "Bid(C)",
+              render: function (data, type, row) {
+  							if (row[5] == 0) {
+                  return '<p style = "color:#222222" >' + data + '</p>'
+                } else if (row[5] > 0) {
+  								return '<p style = "color:#21BA45" >' + data + '</p>'
+  							} else {
+  								return '<p style = "color:#DB2828" >' + data + '</p>'
+  							}
+  						}
+            },
+  					{title: "Ask(C)",
+              render: function (data, type, row) {
+                if (row[6] == 0) {
+                  return '<p style = "color:#222222" >' + data + '</p>'
+                } else if (row[6] > 0) {
+                  return '<p style = "color:#21BA45" >' + data + '</p>'
+                } else {
+                  return '<p style = "color:#DB2828" >' + data + '</p>'
+                }
+              }
+            },
             {title: "Strike Price"},
-  					{title: "Bid(P)"},
-  					{title: "Ask(P)"}
+  					{title: "Bid(P)",
+              render: function (data, type, row) {
+                if (row[7] == 0) {
+                  return '<p style = "color:#222222" >' + data + '</p>'
+                } else if (row[7] > 0) {
+                  return '<p style = "color:#21BA45" >' + data + '</p>'
+                } else {
+                  return '<p style = "color:#DB2828" >' + data + '</p>'
+                }
+              }
+            },
+  					{title: "Ask(P)",
+              render: function (data, type, row) {
+                if (row[8] == 0) {
+                  return '<p style = "color:#222222" >' + data + '</p>'
+                } else if (row[8] > 0) {
+                  return '<p style = "color:#21BA45" >' + data + '</p>'
+                } else {
+                  return '<p style = "color:#DB2828" >' + data + '</p>'
+                }
+              }
+            },
+            {title: "Diff(BC)"},
+            {title: "Diff(AC)"},
+            {title: "Diff(BP)"},
+            {title: "Diff(AP)"}
   				],
           ordering: false,
           searching: false,
@@ -394,7 +463,8 @@ function (context) { // Init()
             {width: "20%", targets: 2, className: "dt-body-center"},
             {width: "20%", targets: 3, className: "dt-body-right"},
             {width: "20%", targets: 4, className: "dt-body-right"},
-            {width: "20%", targets: [0, 1, 2, 3, 4], className: "dt-head-center"}
+            {width: "20%", targets: [0, 1, 2, 3, 4], className: "dt-head-center"},
+            {targets: [5, 6, 7, 8], visible: false}
           ]
   			})
   		}
