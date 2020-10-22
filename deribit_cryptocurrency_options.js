@@ -1,9 +1,9 @@
 registerEA(
 "cryptocurrency_option_trading_platform",
-"A plugin to trade cryptocurrency options(v0.04)",
+"A plugin to trade cryptocurrency options(v0.05)",
 [{
 	name: "interval",
-	value: 30000,
+	value: 30,
 	required: true,
 	type: "Integer",
 	range: null,
@@ -14,7 +14,7 @@ function (context) { // Init()
       var loaded = false
       var latestHb = null
 
-      var interval = getEAParameter(context, "interval")
+      var interval = getEAParameter(context, "interval") * 1000
 
       function convertOptionName (rawName) {
         var name = rawName.split("-")
