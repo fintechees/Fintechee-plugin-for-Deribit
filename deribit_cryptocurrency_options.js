@@ -1,6 +1,6 @@
 registerEA(
 "cryptocurrency_option_trading_platform",
-"A plugin to trade cryptocurrency options(v0.06)",
+"A plugin to trade cryptocurrency options(v0.07)",
 [{
 	name: "interval",
 	value: 30,
@@ -231,35 +231,37 @@ function (context) { // Init()
               if (index == 2) {
                 var column = table.column(index).data()
                 for (var i in column) {
-                  var row = table.row(parseInt(i)).data()
+                  var rowId = parseInt(i)
+
+                  var row = table.row(rowId).data()
 
                   if (column[i] == parseFloat(name[2])) {
                     if (name[3] == "C") {
                       if (row[0] != null && row[0] != "" && bid != "") {
-                        tb.fnUpdate(bid - row[0], parseInt(i), 5, false, false)
+                        tb.fnUpdate(bid - row[0], rowId, 5, false, false)
                       } else {
-                        tb.fnUpdate(0, parseInt(i), 5, false, false)
+                        tb.fnUpdate(0, rowId, 5, false, false)
                       }
                       if (row[1] != null && row[1] != "" && ask != "") {
-                        tb.fnUpdate(ask - row[1], parseInt(i), 6, false, false)
+                        tb.fnUpdate(ask - row[1], rowId, 6, false, false)
                       } else {
-                        tb.fnUpdate(0, parseInt(i), 6, false, false)
+                        tb.fnUpdate(0, rowId, 6, false, false)
                       }
-                      tb.fnUpdate(bid, parseInt(i), 0, false, false)
-                      tb.fnUpdate(ask, parseInt(i), 1, false, false)
+                      tb.fnUpdate(bid, rowId, 0, false, false)
+                      tb.fnUpdate(ask, rowId, 1, false, false)
                     } else if (name[3] == "P") {
                       if (row[3] != null && row[3] != "" && bid != "") {
-                        tb.fnUpdate(bid - row[3], parseInt(i), 7, false, false)
+                        tb.fnUpdate(bid - row[3], rowId, 7, false, false)
                       } else {
-                        tb.fnUpdate(0, parseInt(i), 7, false, false)
+                        tb.fnUpdate(0, rowId, 7, false, false)
                       }
                       if (row[4] != null && row[4] != "" && ask != "") {
-                        tb.fnUpdate(ask - row[4], parseInt(i), 8, false, false)
+                        tb.fnUpdate(ask - row[4], rowId, 8, false, false)
                       } else {
-                        tb.fnUpdate(0, parseInt(i), 8, false, false)
+                        tb.fnUpdate(0, rowId, 8, false, false)
                       }
-                      tb.fnUpdate(bid, parseInt(i), 3, false, false)
-                      tb.fnUpdate(ask, parseInt(i), 4, false, false)
+                      tb.fnUpdate(bid, rowId, 3, false, false)
+                      tb.fnUpdate(ask, rowId, 4, false, false)
                     }
                     break
                   }
