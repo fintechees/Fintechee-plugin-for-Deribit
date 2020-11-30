@@ -1,6 +1,6 @@
 registerEA(
 "cryptocurrency_option_trading_platform",
-"A plugin to trade cryptocurrency options(v0.05)",
+"A plugin to trade cryptocurrency options(v0.06)",
 [{
 	name: "interval",
 	value: 30,
@@ -225,6 +225,8 @@ function (context) { // Init()
             var ask = (resData.params.data.best_ask_price != null && resData.params.data.best_ask_price != 0) ? resData.params.data.best_ask_price : ""
 
             var table = $("#crypto_options_orderbook").DataTable()
+            var tb = $("#crypto_options_orderbook").dataTable()
+
             table.columns().eq(0).each(function (index) {
               if (index == 2) {
                 var column = table.column(index).data()
@@ -234,30 +236,30 @@ function (context) { // Init()
                   if (column[i] == parseFloat(name[2])) {
                     if (name[3] == "C") {
                       if (row[0] != null && row[0] != "" && bid != "") {
-                        $("#crypto_options_orderbook").dataTable().fnUpdate(bid - row[0], parseInt(i), 5, false, false)
+                        tb.fnUpdate(bid - row[0], parseInt(i), 5, false, false)
                       } else {
-                        $("#crypto_options_orderbook").dataTable().fnUpdate(0, parseInt(i), 5, false, false)
+                        tb.fnUpdate(0, parseInt(i), 5, false, false)
                       }
                       if (row[1] != null && row[1] != "" && ask != "") {
-                        $("#crypto_options_orderbook").dataTable().fnUpdate(ask - row[1], parseInt(i), 6, false, false)
+                        tb.fnUpdate(ask - row[1], parseInt(i), 6, false, false)
                       } else {
-                        $("#crypto_options_orderbook").dataTable().fnUpdate(0, parseInt(i), 6, false, false)
+                        tb.fnUpdate(0, parseInt(i), 6, false, false)
                       }
-                      $("#crypto_options_orderbook").dataTable().fnUpdate(bid, parseInt(i), 0, false, false)
-                      $("#crypto_options_orderbook").dataTable().fnUpdate(ask, parseInt(i), 1, false, false)
+                      tb.fnUpdate(bid, parseInt(i), 0, false, false)
+                      tb.fnUpdate(ask, parseInt(i), 1, false, false)
                     } else if (name[3] == "P") {
                       if (row[3] != null && row[3] != "" && bid != "") {
-                        $("#crypto_options_orderbook").dataTable().fnUpdate(bid - row[3], parseInt(i), 7, false, false)
+                        tb.fnUpdate(bid - row[3], parseInt(i), 7, false, false)
                       } else {
-                        $("#crypto_options_orderbook").dataTable().fnUpdate(0, parseInt(i), 7, false, false)
+                        tb.fnUpdate(0, parseInt(i), 7, false, false)
                       }
                       if (row[4] != null && row[4] != "" && ask != "") {
-                        $("#crypto_options_orderbook").dataTable().fnUpdate(ask - row[4], parseInt(i), 8, false, false)
+                        tb.fnUpdate(ask - row[4], parseInt(i), 8, false, false)
                       } else {
-                        $("#crypto_options_orderbook").dataTable().fnUpdate(0, parseInt(i), 8, false, false)
+                        tb.fnUpdate(0, parseInt(i), 8, false, false)
                       }
-                      $("#crypto_options_orderbook").dataTable().fnUpdate(bid, parseInt(i), 3, false, false)
-                      $("#crypto_options_orderbook").dataTable().fnUpdate(ask, parseInt(i), 4, false, false)
+                      tb.fnUpdate(bid, parseInt(i), 3, false, false)
+                      tb.fnUpdate(ask, parseInt(i), 4, false, false)
                     }
                     break
                   }
